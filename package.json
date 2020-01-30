@@ -1,5 +1,5 @@
 {
-    "name": "2-big-mouth",
+    "name": "big-mouth",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
@@ -9,11 +9,16 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "bluebird": "^3.7.2",
+        "bluebird": "^3.5.1",
         "co": "^4.6.0",
-        "serverless-pseudo-parameters": "^2.5.0"
+        "mustache": "^4.0.0",
+        "aws4": "^1.9.1",
+        "serverless": "^1.61.3",
+        "superagent": "^5.2.1",
+        "superagent-promise": "^1.1.0"
     },
     "devDependencies": {
-        "aws-sdk": "^2.606.0"
+        "aws-sdk": "^2.606.0",
+        "serverless-pseudo-parameters": "^1.6.0"
     }
 }

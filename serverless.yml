@@ -1,4 +1,3 @@
-
 service: big-mouth
 
 plugins:
@@ -11,6 +10,9 @@ provider:
     - Effect: Allow
       Action: dynamodb:scan
       Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/restaurants
+    - Effect: Allow
+      Action: execute-api:Invoke
+      Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
 
 functions:
   get-index:
@@ -19,14 +21,32 @@ functions:
       - http:
           path: /
           method: get
+    environment:
+      restaurants_api: https://8vbn7q18j4.execute-api.us-east-1.amazonaws.com/dev/restaurants
+
   get-restaurants:
     handler: functions/get-restaurants.handler
     events:
       - http:
-          path: /restaurants
+          path: /restaurants/
           method: get
+          authorizer: aws_iam
     environment:
       restaurants_table: restaurants
+      cognito_user_pool_id: us-east-1_SsqleMcdd
+      cognito_client_id: 3im4jk8rd0ct5lv45gpkv1bpgd
+
+  search-restaurants:
+    handler: functions/search-restaurants.handler
+    events:
+      - http:
+          path: /restaurants/search
+          method: post
+          authorizer: 
+            arn: arn:aws:cognito-idp:us-east-1:107939664586:userpool/us-east-1_SsqleMcdd
+    environment:
+      restaurants_table: restaurants
+
 
 resources:
   Resources:
@@ -43,6 +63,3 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-
-        
-
