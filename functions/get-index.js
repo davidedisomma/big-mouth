@@ -42,7 +42,7 @@ function* getRestaurants() {
   .set('Host', opts.headers['Host'])
   .set('X-Amz-Date', opts.headers['X-Amz-Date'])
   .set('Authorization', opts.headers['Authorization']);
-
+  //With regard to this last header, 'X-Amz-Security-Token' is only needed if you're using an assumed role with temporary credentials,
   if (opts.headers['X-Amz-Security-Token']) {
     httpReq.set('X-Amz-Security-Token', opts.headers['X-Amz-Security-Token']);
   }
