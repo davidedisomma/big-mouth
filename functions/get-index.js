@@ -26,12 +26,15 @@ function* loadHtml() {
 }
 
 function* getRestaurants() {
+   //This to access to API that it has AWS_IAM authorization
+  //we'll create an object with the information we need to sign the request.
   let url = URL.parse(restaurantsApiRoot);
   let opts = {
     host: url.hostname,
     path: url.pathname
   }
 
+  //we'll sign it with aws4.sign, which adds a bunch of headers to the opts object
   aws4.sign(opts);
 
   let httpReq = http
