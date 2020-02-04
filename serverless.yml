@@ -23,6 +23,9 @@ functions:
           method: get
     environment:
       restaurants_api: https://8vbn7q18j4.execute-api.us-east-1.amazonaws.com/dev/restaurants
+      cognito_user_pool_id: us-east-1_SsqleMcdd
+      # This is the ID of web client declared in Cognito User Pool
+      cognito_client_id: 1vpv6uuhp16k350sfirsr39r0r
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -33,8 +36,6 @@ functions:
           authorizer: aws_iam
     environment:
       restaurants_table: restaurants
-      cognito_user_pool_id: us-east-1_SsqleMcdd
-      cognito_client_id: 3im4jk8rd0ct5lv45gpkv1bpgd
 
   search-restaurants:
     handler: functions/search-restaurants.handler
