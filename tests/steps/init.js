@@ -15,7 +15,8 @@ let init = co.wrap(function* () {
     process.env.restaurants_table = "restaurants";
     process.env.AWS_REGION = "us-east-1";
     process.env.cognito_client_id = "test_cognito_client_id";
-    process.env.cognito_user_pool_id = "cognito_user_pool_id";
+    process.env.cognito_user_pool_id = "us-east-1_SsqleMcdd";
+    process.env.cognito_server_client_id = "3im4jk8rd0ct5lv45gpkv1bpgd";
 
     //the AWS 4 library that we used to sign our HTTP request doesn't work with AWS profiles. 
     //So, unfortunately, we have to install another dependency, awscred, and use it to load the credentials from our profile and then set the environment variables manually.

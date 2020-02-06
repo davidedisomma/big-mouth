@@ -1,46 +1,144 @@
 'use strict';
 
-const APP_ROOT = '../../'
-//Lodash utility library for javascript
-const _ = require('lodash');
+const APP_ROOT = '../../';
 
-function viaHandler(event, functionName) {
-    let handler = require(`${APP_ROOT}/functions/${functionName}`).handler;
-  
-    return new Promise((resolve, reject) => {
-      // Stub context
-      let context = {};
-      let callback = function (err, response) {
-        if (err) {
-          console.log(err, err.stack);
-          reject(err);
-        } else {
-          let contentType = _.get(response, 'headers.Content-Type', 'application/json');
-          if (response.body && contentType === 'application/json') {
-            response.body = JSON.parse(response.body);
-          }
-  
-          resolve(response);
-        }
+const _       = require('lodash');
+const co      = require('co');
+const Promise = require("bluebird");
+const http    = require('superagent-promise')(require('superagent'), Promise);
+const aws4    = require('aws4');
+const URL     = require('url');
+//So it allows us to reuse the same test cases that we have created for the integration test.
+const mode    = process.env.TEST_MODE;
+
+//when we get the HTTP response back, we need to make sure we return an object that is compatible with what 
+//the handler functions themselves will return because the test cases are written against that contract
+let respondFrom = function (httpRes) {
+  let contentType = _.get(httpRes, 'headers.content-type', 'application/json');
+  let body = 
+    contentType === 'application/json'
+      ? httpRes.body
+      : httpRes.text;
+
+  return { 
+    statusCode: httpRes.status,
+    body: body,
+    headers: httpRes.headers
+  };
+}
+
+let signHttpRequest = (url, httpReq) => {
+  let urlData = URL.parse(url);
+  let opts = {
+    host: urlData.hostname, 
+    path: urlData.pathname
+  };
+
+  aws4.sign(opts);
+
+  httpReq
+    .set('Host', opts.headers['Host'])
+    .set('X-Amz-Date', opts.headers['X-Amz-Date'])
+    .set('Authorization', opts.headers['Authorization']);
+
+  if (opts.headers['X-Amz-Security-Token']) {
+    httpReq.set('X-Amz-Security-Token', opts.headers['X-Amz-Security-Token']);
+  }
+}
+
+let viaHttp = co.wrap(function* (relPath, method, opts) {
+  //we will construct the actual URL to make the HTTP request against
+  let root = process.env.TEST_ROOT;
+  let url = `${root}/${relPath}`;
+  console.log(`invoking via HTTP ${method} ${url}`);
+
+  try {
+    let httpReq = http(method, url);
+
+    let body = _.get(opts, "body");
+    if (body) {      
+      httpReq.send(body);
+    }
+
+    //We can also optionally sign the HTTP request with our IAM role
+    if (_.get(opts, "iam_auth", false) === true) {
+      signHttpRequest(url, httpReq);
+    }
+
+    let authHeader = _.get(opts, "auth");
+    if (authHeader) {
+      httpReq.set('Authorization', authHeader);
+    }
+    let res = yield httpReq;
+    return respondFrom(res);
+  } catch (err) {
+    if (err.status) {
+      return {
+        statusCode: err.status,
+        headers: err.response.headers
       };
-  
-      handler(event, context, callback);
-    });
+    } else {
+      throw err;
+    }
   }
-  
-  let we_invoke_get_index = () => viaHandler({}, 'get-index');
-  
-  let we_invoke_get_restaurants = () => viaHandler({}, 'get-restaurants');
-  
-  let we_invoke_search_restaurants = theme => {
-    let event = { 
-      body: JSON.stringify({ theme })
+})
+
+//Take an event payload and invoke a handler
+let viaHandler = (event, functionName) => {  
+  let handler = require(`${APP_ROOT}/functions/${functionName}`).handler;
+  console.log(`invoking via handler function ${functionName}`);
+
+  return new Promise((resolve, reject) => {
+    let context = {};
+    let callback = function (err, response) {
+      if (err) {
+        reject(err);
+      } else {
+        let contentType = _.get(response, 'headers.content-type', 'application/json');
+        if (response.body && contentType === 'application/json') {
+          response.body = JSON.parse(response.body);
+        }
+
+        resolve(response);
+      }
     };
-    return viaHandler(event, 'search-restaurants');
-  }
-  
-  module.exports = {
-    we_invoke_get_index,
-    we_invoke_get_restaurants,
-    we_invoke_search_restaurants
-  }
+
+    handler(event, context, callback);
+  });
+}
+
+let we_invoke_get_index = co.wrap(function* () {
+  let res = 
+    mode === 'handler' 
+      ? yield viaHandler({}, 'get-index')
+      : yield viaHttp('', 'GET');
+
+  return res;
+});
+
+let we_invoke_get_restaurants = co.wrap(function* () {
+  let res =
+    mode === 'handler' 
+      ? yield viaHandler({}, 'get-restaurants')
+      : yield viaHttp('restaurants', 'GET', { iam_auth: true });
+
+  return res;
+});
+
+let we_invoke_search_restaurants = co.wrap(function* (user, theme) {
+  let body = JSON.stringify({ theme });
+  let auth = user.idToken;
+
+  let res = 
+    mode === 'handler'
+      ? viaHandler({ body }, 'search-restaurants')
+      : viaHttp('restaurants/search', 'POST', { body, auth })
+
+  return res;
+});
+
+module.exports = {
+  we_invoke_get_index,
+  we_invoke_get_restaurants,
+  we_invoke_search_restaurants
+};
