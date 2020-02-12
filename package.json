@@ -19,13 +19,13 @@
         "lodash": "^4.17.15",
         "mocha": "^7.0.1",
         "mustache": "^4.0.0",
-        "serverless": "^1.61.3",
         "superagent": "^5.2.1",
         "superagent-promise": "^1.1.0"
     },
     "devDependencies": {
         "aws-sdk": "^2.613.0",
         "cheerio": "^1.0.0-rc.3",
+        "serverless": "^1.63.0",
         "serverless-pseudo-parameters": "^1.6.0"
     }
 }
