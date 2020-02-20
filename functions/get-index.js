@@ -34,14 +34,19 @@ function* getRestaurants() {
     host: url.hostname,
     path: url.pathname
   }
-if (!process.env.AWS_ACCESS_KEY_ID) {
+  if (!process.env.AWS_ACCESS_KEY_ID) {
       //the AWS 4 library that we used to sign our HTTP request doesn't work with AWS profiles. 
     //So, unfortunately, we have to install another dependency, awscred, and use it to load the credentials from our profile and then set the environment variables manually.
     let cred = (yield awscred.loadAsync()).credentials;
 
     process.env.AWS_ACCESS_KEY_ID = cred.accessKeyId;
     process.env.AWS_SECRET_ACCESS_KEY = cred.secretAccessKey;
-}
+
+    if(cred.sessionToken) {
+      process.env.AWS_SESSION_TOKEN = cred.sessionToken;
+    }
+  }
+
 
   //we'll sign it with aws4.sign, which adds a bunch of headers to the opts object
   aws4.sign(opts);
